@@ -29,6 +29,12 @@ const config: HardhatUserConfig = {
       url: process.env.GOERLI_URL,
       accounts: [process.env.OWNER_PRIVATE_KEY!, process.env.MGR_PRIVATE_KEY!],
     },
+    hardhat: {
+      forking: {
+        url: process.env.GOERLI_URL!,
+        blockNumber: 7098560,
+      },
+    },
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,

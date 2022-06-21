@@ -10,18 +10,17 @@ let presale: Presale;
 let mok: Mok;
 let owner: SignerWithAddress;
 let user: SignerWithAddress;
-let mockRouter: MockRouter;
 
 describe("Presale", function () {
   beforeEach(async () => {
     [owner, user] = await ethers.getSigners();
 
-    MockRouterFactory = await ethers.getContractFactory("MockRouter");
-    mockRouter = await MockRouterFactory.deploy();
-    await mockRouter.deployed();
-
     PresaleFactory = await ethers.getContractFactory("Presale");
-    presale = await PresaleFactory.deploy(1, owner.address, mockRouter.address);
+    presale = await PresaleFactory.deploy(
+      1,
+      owner.address,
+      process.env.UNISWAP!
+    );
     await presale.deployed();
 
     MokFactory = await ethers.getContractFactory("Mok");
