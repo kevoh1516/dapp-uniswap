@@ -38,9 +38,7 @@ describe("Presale", function () {
     await mok.connect(user).approve(presale.address, amount[0]);
 
     await expect(
-      await presale
-        .connect(user)
-        .startPresales(start, end, price, amount, address)
+      presale.connect(user).startPresales(start, end, price, amount, address)
     )
       .to.emit(presale, "StartPresale")
       .withArgs(
@@ -98,33 +96,33 @@ describe("Presale", function () {
     it("Should buy tokens and send ether during presale", async function () {
       const numTokensToBuy = 5;
       const ethAmountToSend = numTokensToBuy * _price;
-      await expect(
-        await presale
-          .connect(user)
-          .buy(0, parseUnits(numTokensToBuy.toString(), 18), {
-            value: parseUnits(ethAmountToSend.toString(), 18),
-          })
-      )
+      const result = await presale
+        .connect(user)
+        .buy(0, parseUnits(numTokensToBuy.toString(), 18), {
+          value: parseUnits(ethAmountToSend.toString(), 18),
+        });
+      await expect(result)
         .to.emit(presale, "Bought")
         .withArgs(
           user.address,
           parseUnits(numTokensToBuy.toString(), 18),
           parseUnits(_price.toString(), 18)
-        )
+        );
+      await expect(result)
         .to.emit(presale, "TokenBalance")
         .withArgs(
           0,
           mok.address,
           amount[0].sub(parseUnits(numTokensToBuy.toString(), 18))
-        )
-        .to.changeEtherBalance(
-          user,
-          parseUnits((0 - ethAmountToSend).toString(), 18)
-        )
-        .to.changeEtherBalance(
-          presale,
-          parseUnits(ethAmountToSend.toString(), 18)
         );
+      await expect(result).to.changeEtherBalance(
+        user,
+        parseUnits((0 - ethAmountToSend).toString(), 18)
+      );
+      await expect(result).to.changeEtherBalance(
+        presale,
+        parseUnits(ethAmountToSend.toString(), 18)
+      );
 
       expect(await mok.balanceOf(user.address)).to.equal(
         parseUnits("900", 18).add(parseUnits(numTokensToBuy.toString(), 18))
@@ -155,9 +153,14 @@ describe("Presale", function () {
         await ethers.provider.send("evm_increaseTime", [60 * 20]);
         await ethers.provider.send("evm_mine", []);
         await mok.connect(user).approve(presale.address, numTokensToBuyBig);
-        await expect(await presale.connect(user).endPresale(0))
+        await expect(presale.connect(user).endPresale(0))
           .to.emit(presale, "EndPresale")
           .withArgs(user.address, 0, numTokensToBuyBig);
+      });
+
+      it("Should fail to end the presale because of time", async function () {
+        await mok.connect(user).approve(presale.address, numTokensToBuyBig);
+        await expect(presale.connect(user).endPresale(0)).to.be.reverted;
       });
 
       describe("Withdraw tokens", function () {
@@ -165,13 +168,13 @@ describe("Presale", function () {
           await ethers.provider.send("evm_increaseTime", [60 * 20]);
           await ethers.provider.send("evm_mine", []);
           await mok.connect(user).approve(presale.address, numTokensToBuyBig);
-          await expect(await presale.connect(user).endPresale(0))
+          await expect(presale.connect(user).endPresale(0))
             .to.emit(presale, "EndPresale")
             .withArgs(user.address, 0, numTokensToBuyBig);
         });
 
         it("Should withdraw tokens", async function () {
-          await expect(await presale.connect(user).withdraw(0))
+          await expect(presale.connect(user).withdraw(0))
             .to.emit(presale, "Withdraw")
             .withArgs(user.address, 0, amount[0].sub(numTokensToBuyBig));
           expect((await presale.allPresales(0))[4]).to.equal(0);
