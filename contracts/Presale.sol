@@ -18,7 +18,7 @@ contract Presale is AccessControl {
     IUniswapV2Router02 private router;
 
     uint256 public usageFeeBIP;
-    uint256 public usageFees;
+    uint256 public totalUsageFees;
 
     address routerAddr;
 
@@ -78,7 +78,7 @@ contract Presale is AccessControl {
             "Length mismatch."
         );
         for (uint256 i = 0; i < start.length; i++) {
-            require(start[i] < end[i], "End time <= start time.");
+            require(start[i] < end[i], "End time < start time.");
             require(amount[i] > 0, "Amount must be > 0.");
             uint256 newPresaleId = _presaleIds.current();
             PresaleData memory presale = PresaleData(
@@ -117,13 +117,12 @@ contract Presale is AccessControl {
     function buy(uint256 presaleId, uint256 amount) external payable {
         PresaleData storage presale = allPresales[presaleId];
         require(presale.amount > 0, "Invalid presale ID.");
-        require(msg.value > 0, "you need to send some ether");
         require(
             amount <= presale.amountLeft,
             "Not enough tokens in the reserve"
         );
         require(
-            (msg.value / presale.price) * 10**18 >= amount,
+            (msg.value * 10**18) / presale.price >= amount,
             "Not enough ether"
         );
         require(block.timestamp <= presale.end, "presale has already ended.");
@@ -151,13 +150,16 @@ contract Presale is AccessControl {
             IERC20 token = IERC20(presale.token);
             token.safeTransferFrom(msg.sender, address(this), sold);
             token.approve(address(router), sold);
-            usageFees += (presale.eth * 99) / 100;
-            uint256 sendEth = presale.eth - (presale.eth * 99) / 100;
+
+            uint256 usageFee = (presale.eth * usageFeeBIP) / 10000;
+            totalUsageFees += usageFee;
+            uint256 sendEth = presale.eth - usageFee;
+
             router.addLiquidityETH{value: sendEth}(
                 presale.token,
                 sold,
-                (sold * 99) / 100,
-                (sendEth * 99) / 100,
+                sold,
+                sendEth,
                 address(this),
                 block.timestamp + 60
             );
@@ -182,5 +184,10 @@ contract Presale is AccessControl {
         token.safeTransfer(msg.sender, amountLeft);
 
         emit Withdraw(msg.sender, presaleId, amountLeft);
+    }
+
+    function setUsageFee(uint256 usageFee) external {
+        require(hasRole(ADMIN_ROLE, msg.sender), "Caller is not an admin");
+        usageFeeBIP = usageFee;
     }
 }
