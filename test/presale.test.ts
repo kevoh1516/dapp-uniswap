@@ -144,8 +144,8 @@ describe("Presale", function () {
       const blockNumBefore = await ethers.provider.getBlockNumber();
       const blockBefore = await ethers.provider.getBlock(blockNumBefore);
       const timestampBefore = blockBefore.timestamp;
-      const start = [timestampBefore - 60 * 10];
-      const end = [timestampBefore + 60 * 10];
+      const start = [timestampBefore + 60 * 10];
+      const end = [timestampBefore + 60 * 20];
       await mok.connect(user).approve(presale.address, amount[0]);
       await presale
         .connect(user)
@@ -154,14 +154,14 @@ describe("Presale", function () {
 
     it("Fails because presale has not started", async function () {
       const numTokensToBuy = 5;
-      const ethAmountToSend = numTokensToBuy * _price - 1;
+      const ethAmountToSend = numTokensToBuy * _price;
       await expect(
         presale
           .connect(user)
-          .buy(1, parseUnits(numTokensToBuy.toString(), 18), {
+          .buy(0, parseUnits(numTokensToBuy.toString(), 18), {
             value: parseEther(ethAmountToSend.toString()),
           })
-      ).to.be.reverted;
+      ).to.be.revertedWith("Presale has not started.");
     });
   });
 
